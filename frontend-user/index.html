@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>医院设备管理系统 - 用户端</title>
+    <style>
+        /* CSS变量 */
+        :root {
+            --primary-color: #1890ff;
+            --primary-hover: #40a9ff;
+            --success-color: #52c41a;
+            --warning-color: #faad14;
+            --error-color: #ff4d4f;
+            --text-color: #333;
+            --text-secondary: #666;
+            --text-light: #999;
+            --border-color: #e8e8e8;
+            --bg-color: #f5f7fa;
+            --white: #fff;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            --radius: 8px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            color: var(--text-color);
+            background: var(--bg-color);
+            line-height: 1.5;
+        }
+
+        .hidden { display: none !important; }
+
+        /* 登录页面 */
+        .login-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: url('images/hospital-bg.svg') no-repeat center center;
+            background-size: cover;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-page::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(26, 54, 93, 0.85) 0%, rgba(45, 74, 111, 0.75) 100%);
+            z-index: 0;
+        }
+
+        .login-page::after {
+            display: none;
+        }
+
+        .login-container {
+            width: 420px;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 20px;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.1);
+            padding: 45px 40px;
+            position: relative;
+            z-index: 1;
+            backdrop-filter: blur(20px);
+            animation: loginFadeIn 0.6s ease-out;
+        }
+
+        @keyframes loginFadeIn {
+            from { opacity: 0; transform: translateY(30px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .login-logo { 
+            font-size: 60px; 
+            margin-bottom: 15px; 
+            filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15)); 
+            animation: logoPulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes logoPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .login-header h1 { 
+            font-size: 26px; 
+            color: var(--text-color); 
+            margin-bottom: 10px; 
+            font-weight: 700; 
+            letter-spacing: -0.5px;
+        }
+        .login-header p { 
+            color: var(--text-secondary); 
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 14px;
+            background: linear-gradient(135deg, rgba(82, 196, 26, 0.1) 0%, rgba(115, 209, 61, 0.1) 100%);
+            border-radius: 20px;
+        }
+
+        .form-group { margin-bottom: 24px; }
+        .form-group label { 
+            display: block; 
+            margin-bottom: 10px; 
+            color: var(--text-color); 
+            font-weight: 600; 
+            font-size: 14px; 
+        }
+        .form-control {
+            width: 100%;
+            padding: 16px 18px;
+            border: 2px solid #e8ecf0;
+            border-radius: 12px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+        }
+        .form-control:hover {
+            border-color: #d0d7de;
+            background: #fff;
+        }
+        .form-control:focus { 
+            outline: none; 
+            border-color: var(--success-color); 
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(82, 196, 26, 0.12); 
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .btn-primary { 
+            background: linear-gradient(135deg, var(--success-color) 0%, #73d13d 100%); 
+            color: var(--white); 
+            box-shadow: 0 6px 20px rgba(82, 196, 26, 0.4);
+        }
+        .btn-primary:hover { 
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(82, 196, 26, 0.5);
+        }
+        .btn-primary:active {
+            transform: translateY(-1px);
+        }
+
+        .login-footer { 
+            text-align: center; 
+            margin-top: 28px; 
+            color: var(--text-light); 
+            font-size: 13px; 
+        }
+
+        /* 主应用 */
+        .app-header {
+            background: var(--white);
+            padding: 15px 20px;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .app-header h1 { font-size: 18px; display: flex; align-items: center; gap: 10px; }
+        .app-header .user-info { display: flex; align-items: center; gap: 15px; }
+        .app-header .user-name { font-weight: 500; }
+        .btn-logout {
+            padding: 6px 12px;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            cursor: pointer;
+        }
+        .btn-logout:hover { border-color: var(--primary-color); color: var(--primary-color); }
+
+        /* 导航标签 */
+        .nav-tabs {
+            display: flex;
+            background: var(--white);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 20px;
+            overflow-x: auto;
+        }
+
+        .nav-tab {
+            padding: 15px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            white-space: nowrap;
+            transition: all 0.3s;
+            color: var(--text-secondary);
+        }
+
+        .nav-tab:hover { color: var(--primary-color); }
+        .nav-tab.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+        }
+
+        /* 内容区 */
+        .content { padding: 20px; max-width: 1200px; margin: 0 auto; }
+
+        .card {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+
+        .card-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 500;
+        }
+
+        .card-body { padding: 20px; }
+
+        /* 统计卡片 */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            background: var(--white);
+            border-radius: var(--radius);
+            padding: 20px;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+
+        .stat-item .icon { font-size: 32px; margin-bottom: 10px; }
+        .stat-item .value { font-size: 24px; font-weight: 600; color: var(--primary-color); }
+        .stat-item .label { color: var(--text-secondary); font-size: 13px; margin-top: 5px; }
+
+        /* 设备列表 */
+        .equipment-list { display: grid; gap: 15px; }
+
+        .equipment-item {
+            background: var(--white);
+            border-radius: var(--radius);
+            padding: 15px;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .equipment-info h3 { font-size: 16px; margin-bottom: 5px; }
+        .equipment-info p { color: var(--text-secondary); font-size: 13px; }
+        .equipment-meta { display: flex; gap: 15px; margin-top: 8px; }
+        .equipment-meta span { font-size: 12px; color: var(--text-light); }
+
+        .status-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .status-tag.success { background: rgba(82, 196, 26, 0.1); color: var(--success-color); }
+        .status-tag.warning { background: rgba(250, 173, 20, 0.1); color: var(--warning-color); }
+        .status-tag.error { background: rgba(255, 77, 79, 0.1); color: var(--error-color); }
+        .status-tag.info { background: rgba(24, 144, 255, 0.1); color: var(--primary-color); }
+
+        /* 搜索栏 */
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .search-bar input, .search-bar select {
+            padding: 10px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            font-size: 14px;
+        }
+
+        .search-bar input { flex: 1; min-width: 200px; }
+        .search-bar input:focus, .search-bar select:focus { outline: none; border-color: var(--primary-color); }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-light);
+        }
+        .empty-state .icon { font-size: 48px; margin-bottom: 15px; }
+
+        /* 加载状态 */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+        .loading::after {
+            content: '';
+            width: 30px;
+            height: 30px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* 提示框 */
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--white);
+            padding: 12px 20px;
+            border-radius: var(--radius);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 2000;
+            animation: toastIn 0.3s ease;
+        }
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        .toast.success { border-left: 4px solid var(--success-color); }
+        .toast.error { border-left: 4px solid var(--error-color); }
+
+        /* 自定义模态框 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .modal-box {
+            background: var(--white);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            animation: modalIn 0.3s ease;
+        }
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h3 { font-size: 16px; font-weight: 500; }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--text-light);
+            line-height: 1;
+        }
+        .modal-close:hover { color: var(--text-color); }
+        .modal-body { padding: 20px; }
+        .modal-body textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius);
+            font-size: 14px;
+            resize: vertical;
+        }
+        .modal-body textarea:focus { outline: none; border-color: var(--primary-color); }
+        .modal-footer {
+            padding: 12px 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .modal-footer button {
+            padding: 8px 20px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .modal-cancel {
+            background: var(--white);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+        .modal-cancel:hover { border-color: var(--text-color); }
+        .modal-confirm {
+            background: var(--warning-color);
+            border: none;
+            color: var(--white);
+        }
+        .modal-confirm:hover { background: #d48806; }
+
+        /* 密码输入框 */
+        .password-wrapper {
+            position: relative;
+        }
+        .password-wrapper input {
+            padding-right: 52px;
+        }
+        .password-toggle {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-light);
+            font-size: 18px;
+            padding: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            border-radius: 6px;
+        }
+        .password-toggle:hover { 
+            color: var(--success-color); 
+            background: rgba(82, 196, 26, 0.1);
+        }
+        .password-toggle svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* 登录错误提示 */
+        .login-error {
+            background: linear-gradient(135deg, rgba(255, 77, 79, 0.1) 0%, rgba(255, 107, 107, 0.1) 100%);
+            border: 1px solid rgba(255, 77, 79, 0.3);
+            color: var(--error-color);
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: shakeError 0.5s ease;
+        }
+        @keyframes shakeError {
+            0%, 100% { transform: translateX(0); }
+            15%, 45%, 75% { transform: translateX(-8px); }
+            30%, 60%, 90% { transform: translateX(8px); }
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .login-container { width: 90%; padding: 30px; }
+            .content { padding: 15px; }
+            .equipment-item { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .stat-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <!-- 登录页面 -->
+    <div id="loginPage" class="login-page">
+        <div class="login-container">
+            <div class="login-header">
+                <div class="login-logo">🏥</div>
+                <h1>医院设备管理系统</h1>
+                <p>用户端 - 设备查询与报修</p>
+            </div>
+            <form id="loginForm">
+                <div id="loginError" class="login-error hidden">
+                    <span>⚠️</span>
+                    <span id="loginErrorMsg">用户名或密码错误</span>
+                </div>
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="username" class="form-control" placeholder="请输入用户名" required>
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="password" class="form-control" placeholder="请输入密码" required>
+                        <button type="button" class="password-toggle" id="togglePassword" title="显示密码">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="eyeIcon">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">登 录</button>
+            </form>
+            <div class="login-footer">
+                <p>© 2024 医院设备管理系统</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主应用 -->
+    <div id="app" class="hidden">
+        <header class="app-header">
+            <h1>🏥 医院设备管理系统</h1>
+            <div class="user-info">
+                <span class="user-name" id="userName">用户</span>
+                <button class="btn-logout" id="logoutBtn">退出</button>
+            </div>
+        </header>
+
+        <nav class="nav-tabs">
+            <div class="nav-tab active" data-tab="overview">设备概览</div>
+            <div class="nav-tab" data-tab="myEquipment">我的设备</div>
+            <div class="nav-tab" data-tab="repair">报修记录</div>
+        </nav>
+
+        <main class="content" id="mainContent">
+            <!-- 动态内容 -->
+        </main>
+    </div>
+
+    <!-- 提示框 -->
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- 报修模态框 -->
+    <div id="repairModal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>设备报修</h3>
+                <button class="modal-close" onclick="closeRepairModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 12px; color: var(--text-secondary);">设备: <span id="repairDeviceName"></span></p>
+                <textarea id="faultDesc" placeholder="请详细描述故障情况..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-cancel" onclick="closeRepairModal()">取消</button>
+                <button class="modal-confirm" onclick="confirmRepair()">提交报修</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API模块
+        const API = {
+            baseUrl: '/api',
+            getToken() { return localStorage.getItem('token'); },
+            setToken(token) { localStorage.setItem('token', token); },
+            clearToken() { localStorage.removeItem('token'); localStorage.removeItem('user'); },
+            
+            async request(url, options = {}) {
+                const token = this.getToken();
+                const headers = {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                };
+                
+                try {
+                    const response = await fetch(`${this.baseUrl}${url}`, { ...options, headers });
+                    const data = await response.json();
+                    // 登录接口不需要刷新页面，直接返回错误
+                    if (response.status === 401 && url !== '/auth/login') {
+                        this.clearToken();
+                        location.reload();
+                    }
+                    return data;
+                } catch (error) {
+                    return { success: false, message: '网络请求失败' };
+                }
+            },
+            
+            get(url, params = {}) {
+                const qs = new URLSearchParams(params).toString();
+                return this.request(qs ? `${url}?${qs}` : url, { method: 'GET' });
+            },
+            
+            post(url, data = {}) {
+                return this.request(url, { method: 'POST', body: JSON.stringify(data) });
+            }
+        };
+
+        // 工具函数
+        const Utils = {
+            formatMoney(v) { return '¥' + Number(v || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2 }); },
+            formatDate(d) { return d ? new Date(d).toLocaleDateString('zh-CN') : '-'; },
+            getStatusClass(s) {
+                const map = { '在用': 'success', '在库': 'info', '维修中': 'warning', '已报废': 'error', '已完成': 'success' };
+                return map[s] || 'info';
+            }
+        };
+
+        // 提示框
+        function showToast(msg, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = `toast ${type}`;
+            toast.classList.remove('hidden');
+            setTimeout(() => toast.classList.add('hidden'), 3000);
+        }
+
+        // 应用状态
+        let currentUser = null;
+        let currentTab = 'overview';
+
+        // 初始化
+        function init() {
+            const token = API.getToken();
+            const user = localStorage.getItem('user');
+            
+            if (token && user) {
+                currentUser = JSON.parse(user);
+                showApp();
+            } else {
+                showLogin();
+            }
+            
+            bindEvents();
+        }
+
+        function showLogin() {
+            document.getElementById('loginPage').classList.remove('hidden');
+            document.getElementById('app').classList.add('hidden');
+        }
+
+        function showApp() {
+            document.getElementById('loginPage').classList.add('hidden');
+            document.getElementById('app').classList.remove('hidden');
+            document.getElementById('userName').textContent = currentUser.name;
+            loadTab('overview');
+        }
+
+        function bindEvents() {
+            // 登录
+            document.getElementById('loginForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                
+                // 隐藏之前的错误
+                document.getElementById('loginError').classList.add('hidden');
+                
+                const res = await API.post('/auth/login', { username, password });
+                if (res.success) {
+                    API.setToken(res.data.token);
+                    localStorage.setItem('user', JSON.stringify(res.data.user));
+                    currentUser = res.data.user;
+                    showToast('登录成功', 'success');
+                    showApp();
+                } else {
+                    // 显示友好的错误提示
+                    const errorEl = document.getElementById('loginError');
+                    document.getElementById('loginErrorMsg').textContent = res.message || '用户名或密码错误，请重试';
+                    errorEl.classList.remove('hidden');
+                }
+            });
+
+            // 密码显示/隐藏切换
+            document.getElementById('togglePassword').addEventListener('click', function() {
+                const passwordInput = document.getElementById('password');
+                const eyeIcon = document.getElementById('eyeIcon');
+                
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    eyeIcon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+                    this.title = '隐藏密码';
+                } else {
+                    passwordInput.type = 'password';
+                    eyeIcon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+                    this.title = '显示密码';
+                }
+            });
+
+            // 退出
+            document.getElementById('logoutBtn').addEventListener('click', async () => {
+                await API.post('/auth/logout');
+                API.clearToken();
+                showToast('已退出', 'success');
+                showLogin();
+            });
+
+            // 标签切换
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    loadTab(tab.dataset.tab);
+                });
+            });
+        }
+
+        // 加载标签页
+        async function loadTab(tab) {
+            currentTab = tab;
+            const content = document.getElementById('mainContent');
+            content.innerHTML = '<div class="loading"></div>';
+
+            switch (tab) {
+                case 'overview':
+                    await loadOverview();
+                    break;
+                case 'myEquipment':
+                    await loadMyEquipment();
+                    break;
+                case 'repair':
+                    await loadRepair();
+                    break;
+            }
+        }
+
+        // 设备概览
+        async function loadOverview() {
+            const res = await API.get('/report/dashboard');
+            const content = document.getElementById('mainContent');
+            
+            if (!res.success) {
+                content.innerHTML = '<div class="empty-state"><div class="icon">❌</div><p>加载失败</p></div>';
+                return;
+            }
+
+            const data = res.data;
+            content.innerHTML = `
+                <div class="stat-grid">
+                    <div class="stat-item">
+                        <div class="icon">📦</div>
+                        <div class="value">${data.totalEquipment}</div>
+                        <div class="label">设备总数</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="icon">✅</div>
+                        <div class="value">${data.inUseCount}</div>
+                        <div class="label">在用设备</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="icon">📥</div>
+                        <div class="value">${data.inStockCount}</div>
+                        <div class="label">在库设备</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="icon">🔧</div>
+                        <div class="value">${data.repairingCount}</div>
+                        <div class="label">维修中</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">设备分类统计</div>
+                    <div class="card-body">
+                        <div class="equipment-list">
+                            ${data.byCategory.map(cat => `
+                                <div class="equipment-item">
+                                    <div class="equipment-info">
+                                        <h3>${cat.name}</h3>
+                                        <p>设备数量: ${cat.count} 台</p>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 18px; font-weight: 600; color: var(--primary-color);">
+                                            ${Utils.formatMoney(cat.value)}
+                                        </div>
+                                        <div style="font-size: 12px; color: var(--text-light);">设备价值</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 我的设备
+        async function loadMyEquipment() {
+            const res = await API.get('/equipment/items', { department: currentUser.department });
+            const content = document.getElementById('mainContent');
+            
+            content.innerHTML = `
+                <div class="search-bar">
+                    <input type="text" id="searchKeyword" placeholder="搜索设备名称、序列号...">
+                    <select id="searchStatus">
+                        <option value="">全部状态</option>
+                        <option value="在用">在用</option>
+                        <option value="维修中">维修中</option>
+                    </select>
+                </div>
+                <div class="card">
+                    <div class="card-header">设备列表 (${currentUser.department})</div>
+                    <div class="card-body">
+                        <div id="equipmentList" class="equipment-list">
+                            ${renderEquipmentList(res.data || [])}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // 搜索事件
+            document.getElementById('searchKeyword').addEventListener('input', filterEquipment);
+            document.getElementById('searchStatus').addEventListener('change', filterEquipment);
+        }
+
+        function renderEquipmentList(items) {
+            if (!items.length) {
+                return '<div class="empty-state"><div class="icon">📭</div><p>暂无设备</p></div>';
+            }
+
+            return items.map(item => `
+                <div class="equipment-item">
+                    <div class="equipment-info">
+                        <h3>${item.equipmentName}</h3>
+                        <p>${item.brand} ${item.model}</p>
+                        <div class="equipment-meta">
+                            <span>序列号: ${item.serialNumber}</span>
+                            <span>位置: ${item.location}</span>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <span class="status-tag ${Utils.getStatusClass(item.status)}">${item.status}</span>
+                        ${item.status === '在用' ? `
+                            <button onclick="submitRepair(${item.id}, '${item.serialNumber}')" 
+                                style="margin-top: 10px; padding: 6px 12px; background: var(--warning-color); color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                报修
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function filterEquipment() {
+            const keyword = document.getElementById('searchKeyword').value;
+            const status = document.getElementById('searchStatus').value;
+            
+            const res = await API.get('/equipment/items', { 
+                department: currentUser.department,
+                keyword,
+                status 
+            });
+            
+            document.getElementById('equipmentList').innerHTML = renderEquipmentList(res.data || []);
+        }
+
+        // 报修相关
+        let currentRepairItem = null;
+
+        function submitRepair(itemId, serialNumber) {
+            currentRepairItem = { id: itemId, serialNumber };
+            document.getElementById('repairDeviceName').textContent = serialNumber;
+            document.getElementById('faultDesc').value = '';
+            document.getElementById('repairModal').classList.remove('hidden');
+        }
+
+        function closeRepairModal() {
+            document.getElementById('repairModal').classList.add('hidden');
+            currentRepairItem = null;
+        }
+
+        async function confirmRepair() {
+            const faultDesc = document.getElementById('faultDesc').value.trim();
+            if (!faultDesc) {
+                showToast('请描述故障情况', 'error');
+                return;
+            }
+
+            const res = await API.post('/repair', {
+                equipmentItemId: currentRepairItem.id,
+                faultDesc
+            });
+
+            if (res.success) {
+                showToast('报修提交成功', 'success');
+                closeRepairModal();
+                loadMyEquipment();
+            } else {
+                showToast(res.message || '提交失败', 'error');
+            }
+        }
+
+        // 报修记录
+        async function loadRepair() {
+            const res = await API.get('/repair');
+            const content = document.getElementById('mainContent');
+            
+            const records = res.data || [];
+            
+            content.innerHTML = `
+                <div class="card">
+                    <div class="card-header">报修记录</div>
+                    <div class="card-body">
+                        <div class="equipment-list">
+                            ${records.length ? records.map(r => `
+                                <div class="equipment-item">
+                                    <div class="equipment-info">
+                                        <h3>${r.equipmentName}</h3>
+                                        <p>单号: ${r.orderNo}</p>
+                                        <div class="equipment-meta">
+                                            <span>故障: ${r.faultDesc}</span>
+                                            <span>日期: ${Utils.formatDate(r.startDate)}</span>
+                                        </div>
+                                        ${r.repairContent ? `<p style="margin-top: 8px; color: var(--success-color);">维修内容: ${r.repairContent}</p>` : ''}
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <span class="status-tag ${Utils.getStatusClass(r.status)}">${r.status}</span>
+                                        ${r.cost ? `<div style="margin-top: 8px; font-size: 14px;">费用: ${Utils.formatMoney(r.cost)}</div>` : ''}
+                                    </div>
+                                </div>
+                            `).join('') : '<div class="empty-state"><div class="icon">📭</div><p>暂无报修记录</p></div>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 启动
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
