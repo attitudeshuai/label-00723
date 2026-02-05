@@ -29,11 +29,10 @@ Pages.reportStockIn = async function() {
           </div>
           <div class="form-group">
             <label>设备分类</label>
-            <select class="form-control" id="rptStockInCat">
+            <select class="form-control" id="rptStockInCat" onchange="Pages.queryStockInReport()">
               ${Components.renderSelect(this.cache.categories.map(c => ({ value: c.id, label: c.name })), '', '全部分类')}
             </select>
           </div>
-          <button class="btn btn-primary" onclick="Pages.queryStockInReport()">查询</button>
         </div>
         
         <div class="stat-cards" style="margin: 20px 0;">
@@ -60,8 +59,10 @@ Pages.reportStockIn = async function() {
     </div>
   `;
   
-  // 初始化日期范围选择器
-  this.rptStockInDatePicker = Components.createDateRangePicker('rptStockInDateRange');
+  // 初始化日期范围选择器，选择后自动搜索
+  this.rptStockInDatePicker = Components.createDateRangePicker('rptStockInDateRange', {
+    onChange: () => Pages.queryStockInReport()
+  });
   
   this.cache.stockInReportData = res.data?.records || [];
 };
@@ -132,9 +133,8 @@ Pages.reportStockOut = async function() {
           </div>
           <div class="form-group">
             <label>科室</label>
-            <input type="text" class="form-control" id="rptStockOutDept" placeholder="科室名称">
+            <input type="text" class="form-control" id="rptStockOutDept" placeholder="科室名称" onkeyup="Pages.queryStockOutReport()">
           </div>
-          <button class="btn btn-primary" onclick="Pages.queryStockOutReport()">查询</button>
         </div>
         
         <div class="stat-cards" style="margin: 20px 0;">
@@ -161,8 +161,10 @@ Pages.reportStockOut = async function() {
     </div>
   `;
   
-  // 初始化日期范围选择器
-  this.rptStockOutDatePicker = Components.createDateRangePicker('rptStockOutDateRange');
+  // 初始化日期范围选择器，选择后自动搜索
+  this.rptStockOutDatePicker = Components.createDateRangePicker('rptStockOutDateRange', {
+    onChange: () => Pages.queryStockOutReport()
+  });
   
   this.cache.stockOutReportData = res.data?.records || [];
 };
@@ -227,11 +229,11 @@ Pages.reportInventory = async function() {
         <div class="search-bar">
           <div class="form-group">
             <label>存放位置</label>
-            <input type="text" class="form-control" id="rptInvLoc" placeholder="位置关键词">
+            <input type="text" class="form-control" id="rptInvLoc" placeholder="位置关键词" onkeyup="Pages.queryInventoryReport()">
           </div>
           <div class="form-group">
             <label>状态</label>
-            <select class="form-control" id="rptInvStatus">
+            <select class="form-control" id="rptInvStatus" onchange="Pages.queryInventoryReport()">
               <option value="">全部状态</option>
               <option value="在用">在用</option>
               <option value="在库">在库</option>
@@ -241,11 +243,10 @@ Pages.reportInventory = async function() {
           </div>
           <div class="form-group">
             <label>设备分类</label>
-            <select class="form-control" id="rptInvCat">
+            <select class="form-control" id="rptInvCat" onchange="Pages.queryInventoryReport()">
               ${Components.renderSelect(this.cache.categories.map(c => ({ value: c.id, label: c.name })), '', '全部分类')}
             </select>
           </div>
-          <button class="btn btn-primary" onclick="Pages.queryInventoryReport()">查询</button>
         </div>
         
         <div class="stat-cards" style="margin: 20px 0;">
@@ -344,13 +345,12 @@ Pages.reportDepreciation = async function() {
         <div class="search-bar">
           <div class="form-group">
             <label>年份</label>
-            <input type="number" class="form-control" id="rptDepYear" placeholder="全部年份" min="2020" max="2030">
+            <input type="number" class="form-control" id="rptDepYear" placeholder="全部年份" min="2020" max="2030" onchange="Pages.queryDepreciationReport()">
           </div>
           <div class="form-group">
             <label>日期范围</label>
             <div id="rptDepDateRange"></div>
           </div>
-          <button class="btn btn-primary" onclick="Pages.queryDepreciationReport()">查询</button>
         </div>
         
         <div class="stat-cards" style="margin: 20px 0;">
@@ -370,8 +370,10 @@ Pages.reportDepreciation = async function() {
     </div>
   `;
   
-  // 初始化日期范围选择器
-  this.rptDepDatePicker = Components.createDateRangePicker('rptDepDateRange');
+  // 初始化日期范围选择器，选择后自动搜索
+  this.rptDepDatePicker = Components.createDateRangePicker('rptDepDateRange', {
+    onChange: () => Pages.queryDepreciationReport()
+  });
   
   this.cache.depreciationReportData = res.data?.records || [];
 };

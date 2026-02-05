@@ -1,11 +1,9 @@
 /**
- * API请求模块
- * 封装所有后端API调用
+ * API模块 - 纯前端版本
+ * 使用本地数据存储模拟后端API
  */
 
 const API = {
-  baseUrl: '/api',
-  
   // 获取token
   getToken() {
     return localStorage.getItem('token');
@@ -21,216 +19,589 @@ const API = {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
   },
-  
-  // 通用请求方法
-  async request(url, options = {}) {
-    const token = this.getToken();
-    const headers = {
-      'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-      ...options.headers
-    };
-    
-    try {
-      const response = await fetch(`${this.baseUrl}${url}`, {
-        ...options,
-        headers
-      });
-      
-      const data = await response.json();
-      
-      // 登录接口不需要刷新页面，直接返回错误
-      if (response.status === 401 && url !== '/auth/login') {
-        this.clearToken();
-        window.location.reload();
-        return { success: false, message: '登录已过期' };
-      }
-      
-      return data;
-    } catch (error) {
-      console.error('API请求错误:', error);
-      return { success: false, message: '网络请求失败' };
-    }
-  },
-  
-  // GET请求
-  get(url, params = {}) {
-    const queryString = new URLSearchParams(params).toString();
-    const fullUrl = queryString ? `${url}?${queryString}` : url;
-    return this.request(fullUrl, { method: 'GET' });
-  },
-  
-  // POST请求
-  post(url, data = {}) {
-    return this.request(url, {
-      method: 'POST',
-      body: JSON.stringify(data)
-    });
-  },
-  
-  // PUT请求
-  put(url, data = {}) {
-    return this.request(url, {
-      method: 'PUT',
-      body: JSON.stringify(data)
-    });
-  },
-  
-  // DELETE请求
-  delete(url) {
-    return this.request(url, { method: 'DELETE' });
+
+  // 模拟异步延迟
+  async delay(ms = 100) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   },
   
   // 认证相关
   auth: {
-    login(username, password) {
-      return API.post('/auth/login', { username, password });
+    async login(username, password) {
+      await API.delay();
+      const data = DataStore.getData();
+      const user = data.users.find(u => u.username === username && u.password === password);
+      if (user) {
+        const token = 'token_' + Date.now();
+        return { success: true, data: { token, user: { id: user.id, name: user.name, role: user.role, department: user.department } } };
+      }
+      return { success: false, message: '用户名或密码错误' };
     },
-    logout() {
-      return API.post('/auth/logout');
+    async logout() {
+      await API.delay();
+      return { success: true };
     }
   },
   
   // 分类相关
   category: {
-    list() {
-      return API.get('/category');
+    async list() {
+      await API.delay();
+      const data = DataStore.getData();
+      return { success: true, data: data.categories };
     },
-    get(id) {
-      return API.get(`/category/${id}`);
+    async get(id) {
+      await API.delay();
+      const data = DataStore.getData();
+      const item = data.categories.find(c => c.id === parseInt(id));
+      return item ? { success: true, data: item } : { success: false, message: '分类不存在' };
     },
-    create(data) {
-      return API.post('/category', data);
+    async create(formData) {
+      await API.delay();
+      const data = DataStore.getData();
+      const newItem = { id: DataStore.generateId('category'), ...formData };
+      data.categories.push(newItem);
+      DataStore.saveData(data);
+      return { success: true, data: newItem };
     },
-    update(id, data) {
-      return API.put(`/category/${id}`, data);
+    async update(id, formData) {
+      await API.delay();
+      const data = DataStore.getData();
+      const index = data.categories.findIndex(c => c.id === parseInt(id));
+      if (index === -1) return { success: false, message: '分类不存在' };
+      data.categories[index] = { ...data.categories[index], ...formData };
+      DataStore.saveData(data);
+      return { success: true, data: data.categories[index] };
     },
-    delete(id) {
-      return API.delete(`/category/${id}`);
+    async delete(id) {
+      await API.delay();
+      const data = DataStore.getData();
+      const index = data.categories.findIndex(c => c.id === parseInt(id));
+      if (index === -1) return { success: false, message: '分类不存在' };
+      data.categories.splice(index, 1);
+      DataStore.saveData(data);
+      return { success: true };
     }
   },
   
   // 设备类型相关
   equipment: {
-    listTypes(params = {}) {
-      return API.get('/equipment/types', params);
+    async listTypes(params = {}) {
+      await API.delay();
+      const data = DataStore.getData();
+      let result = data.equipmentTypes.map(t => {
+        const cat = data.categories.find(c => c.id === t.categoryId);
+        return { ...t, categoryName: cat ? cat.name : '' };
+      });
+      if (params.categoryId) result = result.filter(t => t.categoryId === parseInt(params.categoryId));
+      if (params.keyword) {
+        const kw = params.keyword.toLowerCase();
+        result = result.filter(t => t.name.toLowerCase().includes(kw) || t.brand.toLowerCase().includes(kw) || t.model.toLowerCase().includes(kw));
+      }
+      return { success: true, data: result };
     },
-    getType(id) {
-      return API.get(`/equipment/types/${id}`);
+    async getType(id) {
+      await API.delay();
+      const data = DataStore.getData();
+      const item = data.equipmentTypes.find(t => t.id === parseInt(id));
+      return item ? { success: true, data: item } : { success: false, message: '设备类型不存在' };
     },
-    createType(data) {
-      return API.post('/equipment/types', data);
+    async createType(formData) {
+      await API.delay();
+      const data = DataStore.getData();
+      const newItem = { id: DataStore.generateId('equipmentType'), ...formData, categoryId: parseInt(formData.categoryId), lifeYears: parseInt(formData.lifeYears), depreciationRate: parseFloat(formData.depreciationRate) };
+      data.equipmentTypes.push(newItem);
+      DataStore.saveData(data);
+      return { success: true, data: newItem };
     },
-    updateType(id, data) {
-      return API.put(`/equipment/types/${id}`, data);
+    async updateType(id, formData) {
+      await API.delay();
+      const data = DataStore.getData();
+      const index = data.equipmentTypes.findIndex(t => t.id === parseInt(id));
+      if (index === -1) return { success: false, message: '设备类型不存在' };
+      data.equipmentTypes[index] = { ...data.equipmentTypes[index], ...formData, categoryId: parseInt(formData.categoryId), lifeYears: parseInt(formData.lifeYears), depreciationRate: parseFloat(formData.depreciationRate) };
+      DataStore.saveData(data);
+      return { success: true, data: data.equipmentTypes[index] };
     },
-    deleteType(id) {
-      return API.delete(`/equipment/types/${id}`);
+    async deleteType(id) {
+      await API.delay();
+      const data = DataStore.getData();
+      const index = data.equipmentTypes.findIndex(t => t.id === parseInt(id));
+      if (index === -1) return { success: false, message: '设备类型不存在' };
+      data.equipmentTypes.splice(index, 1);
+      DataStore.saveData(data);
+      return { success: true };
     },
-    listItems(params = {}) {
-      return API.get('/equipment/items', params);
+    async listItems(params = {}) {
+      await API.delay();
+      const data = DataStore.getData();
+      let result = data.equipmentItems.map(item => {
+        const type = data.equipmentTypes.find(t => t.id === item.equipmentTypeId);
+        return { ...item, equipmentName: type ? type.name : '', brand: type ? type.brand : '', model: type ? type.model : '' };
+      });
+      if (params.status) result = result.filter(i => i.status === params.status);
+      if (params.department) result = result.filter(i => i.department && i.department.includes(params.department));
+      if (params.keyword) {
+        const kw = params.keyword.toLowerCase();
+        result = result.filter(i => i.serialNumber.toLowerCase().includes(kw) || i.equipmentName.toLowerCase().includes(kw) || (i.location && i.location.toLowerCase().includes(kw)));
+      }
+      return { success: true, data: result };
     },
-    getItem(id) {
-      return API.get(`/equipment/items/${id}`);
+    async getItem(id) {
+      await API.delay();
+      const data = DataStore.getData();
+      const item = data.equipmentItems.find(i => i.id === parseInt(id));
+      return item ? { success: true, data: item } : { success: false, message: '设备不存在' };
     }
   },
-  
+
   // 入库相关
   stockIn: {
-    list(params = {}) {
-      return API.get('/stock-in', params);
+    async list(params = {}) {
+      await API.delay();
+      const data = DataStore.getData();
+      let result = data.stockInRecords.map(r => {
+        const type = data.equipmentTypes.find(t => t.id === r.equipmentTypeId);
+        const cat = type ? data.categories.find(c => c.id === type.categoryId) : null;
+        return { ...r, equipmentName: type ? type.name : '', categoryName: cat ? cat.name : '' };
+      });
+      if (params.startDate) result = result.filter(r => r.date >= params.startDate);
+      if (params.endDate) result = result.filter(r => r.date <= params.endDate);
+      return { success: true, data: result };
     },
-    get(id) {
-      return API.get(`/stock-in/${id}`);
+    async get(id) {
+      await API.delay();
+      const data = DataStore.getData();
+      const item = data.stockInRecords.find(r => r.id === parseInt(id));
+      return item ? { success: true, data: item } : { success: false, message: '入库记录不存在' };
     },
-    create(data) {
-      return API.post('/stock-in', data);
+    async create(formData) {
+      await API.delay();
+      const data = DataStore.getData();
+      const type = data.equipmentTypes.find(t => t.id === parseInt(formData.equipmentTypeId));
+      if (!type) return { success: false, message: '设备类型不存在' };
+      
+      const quantity = parseInt(formData.quantity);
+      const unitPrice = parseFloat(formData.unitPrice);
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      
+      // 创建入库记录
+      const stockIn = {
+        id: DataStore.generateId('stockIn'),
+        orderNo: DataStore.generateOrderNo('RK'),
+        equipmentTypeId: type.id,
+        quantity,
+        unitPrice,
+        totalPrice: quantity * unitPrice,
+        supplier: formData.supplier || '',
+        date: formData.date || new Date().toISOString().split('T')[0],
+        operator: user.name || 'admin',
+        remark: formData.remark || ''
+      };
+      data.stockInRecords.push(stockIn);
+      
+      // 创建设备明细
+      for (let i = 0; i < quantity; i++) {
+        const serialNumber = `${type.name.substring(0, 2).toUpperCase()}-${new Date().getFullYear()}-${String(data.idGenerators.equipmentItem).padStart(3, '0')}`;
+        const item = {
+          id: DataStore.generateId('equipmentItem'),
+          equipmentTypeId: type.id,
+          serialNumber,
+          purchaseDate: stockIn.date,
+          purchasePrice: unitPrice,
+          currentValue: unitPrice,
+          location: '',
+          status: '在库',
+          department: ''
+        };
+        data.equipmentItems.push(item);
+      }
+      
+      DataStore.saveData(data);
+      return { success: true, data: stockIn };
     }
   },
   
   // 出库相关
   stockOut: {
-    list(params = {}) {
-      return API.get('/stock-out', params);
+    async list(params = {}) {
+      await API.delay();
+      const data = DataStore.getData();
+      let result = data.stockOutRecords.map(r => {
+        const item = data.equipmentItems.find(i => i.id === r.equipmentItemId);
+        const type = item ? data.equipmentTypes.find(t => t.id === item.equipmentTypeId) : null;
+        return { ...r, serialNumber: item ? item.serialNumber : '', equipmentName: type ? type.name : '' };
+      });
+      if (params.startDate) result = result.filter(r => r.date >= params.startDate);
+      if (params.endDate) result = result.filter(r => r.date <= params.endDate);
+      if (params.department) result = result.filter(r => r.department && r.department.includes(params.department));
+      return { success: true, data: result };
     },
-    get(id) {
-      return API.get(`/stock-out/${id}`);
+    async get(id) {
+      await API.delay();
+      const data = DataStore.getData();
+      const item = data.stockOutRecords.find(r => r.id === parseInt(id));
+      return item ? { success: true, data: item } : { success: false, message: '出库记录不存在' };
     },
-    create(data) {
-      return API.post('/stock-out', data);
+    async create(formData) {
+      await API.delay();
+      const data = DataStore.getData();
+      const item = data.equipmentItems.find(i => i.id === parseInt(formData.equipmentItemId));
+      if (!item) return { success: false, message: '设备不存在' };
+      if (item.status !== '在库') return { success: false, message: '设备不在库中' };
+      
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const stockOut = {
+        id: DataStore.generateId('stockOut'),
+        orderNo: DataStore.generateOrderNo('CK'),
+        equipmentItemId: item.id,
+        department: formData.department,
+        date: formData.date || new Date().toISOString().split('T')[0],
+        operator: user.name || 'admin',
+        remark: formData.remark || ''
+      };
+      data.stockOutRecords.push(stockOut);
+      
+      // 更新设备状态
+      item.status = '在用';
+      item.department = formData.department;
+      item.location = formData.location || '';
+      
+      DataStore.saveData(data);
+      return { success: true, data: stockOut };
     },
-    getAvailableItems() {
-      return API.get('/stock-out/available/items');
+    async getAvailableItems() {
+      await API.delay();
+      const data = DataStore.getData();
+      const result = data.equipmentItems.filter(i => i.status === '在库').map(item => {
+        const type = data.equipmentTypes.find(t => t.id === item.equipmentTypeId);
+        return { ...item, equipmentName: type ? type.name : '', brand: type ? type.brand : '', model: type ? type.model : '' };
+      });
+      return { success: true, data: result };
     }
   },
   
   // 折旧相关
   depreciation: {
-    list(params = {}) {
-      return API.get('/depreciation', params);
+    async list(params = {}) {
+      await API.delay();
+      const data = DataStore.getData();
+      let result = data.depreciationRecords.map(r => {
+        const item = data.equipmentItems.find(i => i.id === r.equipmentItemId);
+        const type = item ? data.equipmentTypes.find(t => t.id === item.equipmentTypeId) : null;
+        return { ...r, serialNumber: item ? item.serialNumber : '', equipmentName: type ? type.name : '' };
+      });
+      return { success: true, data: result };
     },
-    autoDepreciate(year, month) {
-      return API.post('/depreciation/auto', { year, month });
+    async autoDepreciate(year, month) {
+      await API.delay();
+      const data = DataStore.getData();
+      const items = data.equipmentItems.filter(i => i.status === '在用' && i.currentValue > 0);
+      let count = 0;
+      
+      items.forEach(item => {
+        const type = data.equipmentTypes.find(t => t.id === item.equipmentTypeId);
+        if (!type) return;
+        
+        const monthlyRate = type.depreciationRate / 12 / 100;
+        const depAmount = Math.round(item.purchasePrice * monthlyRate * 100) / 100;
+        const beforeValue = item.currentValue;
+        const afterValue = Math.max(0, beforeValue - depAmount);
+        
+        const record = {
+          id: DataStore.generateId('depreciation'),
+          equipmentItemId: item.id,
+          year: parseInt(year),
+          month: parseInt(month),
+          beforeValue,
+          depreciationAmount: depAmount,
+          afterValue,
+          type: '自动',
+          date: `${year}-${String(month).padStart(2, '0')}-28`
+        };
+        data.depreciationRecords.push(record);
+        item.currentValue = afterValue;
+        count++;
+      });
+      
+      DataStore.saveData(data);
+      return { success: true, message: `已完成${count}台设备的折旧计算` };
     },
-    manualAdjust(data) {
-      return API.post('/depreciation/manual', data);
+    async manualAdjust(formData) {
+      await API.delay();
+      const data = DataStore.getData();
+      const item = data.equipmentItems.find(i => i.id === parseInt(formData.equipmentItemId));
+      if (!item) return { success: false, message: '设备不存在' };
+      
+      const adjustAmount = parseFloat(formData.adjustAmount);
+      const beforeValue = item.currentValue;
+      const afterValue = Math.max(0, beforeValue - adjustAmount);
+      
+      const record = {
+        id: DataStore.generateId('depreciation'),
+        equipmentItemId: item.id,
+        year: new Date().getFullYear(),
+        month: new Date().getMonth() + 1,
+        beforeValue,
+        depreciationAmount: adjustAmount,
+        afterValue,
+        type: '手动',
+        date: new Date().toISOString().split('T')[0],
+        reason: formData.reason || ''
+      };
+      data.depreciationRecords.push(record);
+      item.currentValue = afterValue;
+      
+      DataStore.saveData(data);
+      return { success: true, data: record };
     },
-    getSummary() {
-      return API.get('/depreciation/summary');
+    async getSummary() {
+      await API.delay();
+      const data = DataStore.getData();
+      const result = data.equipmentItems.filter(i => i.status !== '已报废').map(item => {
+        const type = data.equipmentTypes.find(t => t.id === item.equipmentTypeId);
+        const totalDep = item.purchasePrice - item.currentValue;
+        const depRate = item.purchasePrice > 0 ? ((totalDep / item.purchasePrice) * 100).toFixed(1) + '%' : '0%';
+        return {
+          ...item,
+          equipmentName: type ? type.name : '',
+          totalDepreciation: totalDep,
+          depreciationRate: depRate
+        };
+      });
+      return { success: true, data: result };
     }
   },
-  
+
   // 报废相关
   scrap: {
-    list(params = {}) {
-      return API.get('/scrap', params);
+    async list(params = {}) {
+      await API.delay();
+      const data = DataStore.getData();
+      let result = data.scrapRecords.map(r => {
+        const item = data.equipmentItems.find(i => i.id === r.equipmentItemId);
+        const type = item ? data.equipmentTypes.find(t => t.id === item.equipmentTypeId) : null;
+        return { ...r, serialNumber: item ? item.serialNumber : '', equipmentName: type ? type.name : '' };
+      });
+      return { success: true, data: result };
     },
-    get(id) {
-      return API.get(`/scrap/${id}`);
+    async get(id) {
+      await API.delay();
+      const data = DataStore.getData();
+      const item = data.scrapRecords.find(r => r.id === parseInt(id));
+      return item ? { success: true, data: item } : { success: false, message: '报废记录不存在' };
     },
-    create(data) {
-      return API.post('/scrap', data);
+    async create(formData) {
+      await API.delay();
+      const data = DataStore.getData();
+      const item = data.equipmentItems.find(i => i.id === parseInt(formData.equipmentItemId));
+      if (!item) return { success: false, message: '设备不存在' };
+      
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const scrap = {
+        id: DataStore.generateId('scrap'),
+        orderNo: DataStore.generateOrderNo('BF'),
+        equipmentItemId: item.id,
+        reason: formData.reason,
+        originalValue: item.purchasePrice,
+        currentValue: item.currentValue,
+        scrapValue: parseFloat(formData.scrapValue) || 0,
+        date: formData.date || new Date().toISOString().split('T')[0],
+        operator: user.name || 'admin',
+        remark: formData.remark || ''
+      };
+      data.scrapRecords.push(scrap);
+      item.status = '已报废';
+      
+      DataStore.saveData(data);
+      return { success: true, data: scrap };
     },
-    getAvailableItems() {
-      return API.get('/scrap/available/items');
+    async getAvailableItems() {
+      await API.delay();
+      const data = DataStore.getData();
+      const result = data.equipmentItems.filter(i => i.status !== '已报废').map(item => {
+        const type = data.equipmentTypes.find(t => t.id === item.equipmentTypeId);
+        return { ...item, equipmentName: type ? type.name : '', brand: type ? type.brand : '', model: type ? type.model : '' };
+      });
+      return { success: true, data: result };
     }
   },
   
   // 维修相关
   repair: {
-    list(params = {}) {
-      return API.get('/repair', params);
+    async list(params = {}) {
+      await API.delay();
+      const data = DataStore.getData();
+      let result = data.repairRecords.map(r => {
+        const item = data.equipmentItems.find(i => i.id === r.equipmentItemId);
+        const type = item ? data.equipmentTypes.find(t => t.id === item.equipmentTypeId) : null;
+        return { ...r, serialNumber: item ? item.serialNumber : '', equipmentName: type ? type.name : '' };
+      });
+      if (params.status) result = result.filter(r => r.status === params.status);
+      return { success: true, data: result };
     },
-    get(id) {
-      return API.get(`/repair/${id}`);
+    async get(id) {
+      await API.delay();
+      const data = DataStore.getData();
+      const item = data.repairRecords.find(r => r.id === parseInt(id));
+      return item ? { success: true, data: item } : { success: false, message: '维修记录不存在' };
     },
-    create(data) {
-      return API.post('/repair', data);
+    async create(formData) {
+      await API.delay();
+      const data = DataStore.getData();
+      const item = data.equipmentItems.find(i => i.id === parseInt(formData.equipmentItemId));
+      if (!item) return { success: false, message: '设备不存在' };
+      
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      const repair = {
+        id: DataStore.generateId('repair'),
+        orderNo: DataStore.generateOrderNo('WX'),
+        equipmentItemId: item.id,
+        faultDesc: formData.faultDesc,
+        repairContent: '',
+        cost: parseFloat(formData.cost) || 0,
+        startDate: formData.startDate || new Date().toISOString().split('T')[0],
+        endDate: null,
+        status: '维修中',
+        operator: user.name || 'admin',
+        remark: formData.remark || ''
+      };
+      data.repairRecords.push(repair);
+      item.status = '维修中';
+      
+      DataStore.saveData(data);
+      return { success: true, data: repair };
     },
-    update(id, data) {
-      return API.put(`/repair/${id}`, data);
+    async update(id, formData) {
+      await API.delay();
+      const data = DataStore.getData();
+      const index = data.repairRecords.findIndex(r => r.id === parseInt(id));
+      if (index === -1) return { success: false, message: '维修记录不存在' };
+      
+      const repair = data.repairRecords[index];
+      Object.assign(repair, formData);
+      if (formData.cost) repair.cost = parseFloat(formData.cost);
+      
+      // 如果维修完成，更新设备状态
+      if (formData.status === '已完成') {
+        const item = data.equipmentItems.find(i => i.id === repair.equipmentItemId);
+        if (item) item.status = '在用';
+      }
+      
+      DataStore.saveData(data);
+      return { success: true, data: repair };
     },
-    getAvailableItems() {
-      return API.get('/repair/available/items');
+    async getAvailableItems() {
+      await API.delay();
+      const data = DataStore.getData();
+      const result = data.equipmentItems.filter(i => i.status === '在用').map(item => {
+        const type = data.equipmentTypes.find(t => t.id === item.equipmentTypeId);
+        return { ...item, equipmentName: type ? type.name : '', brand: type ? type.brand : '', model: type ? type.model : '' };
+      });
+      return { success: true, data: result };
     }
   },
   
   // 报表相关
   report: {
-    dashboard() {
-      return API.get('/report/dashboard');
+    async dashboard() {
+      await API.delay();
+      const data = DataStore.getData();
+      const items = data.equipmentItems;
+      const now = new Date();
+      const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      
+      const totalEquipment = items.length;
+      const inUseCount = items.filter(i => i.status === '在用').length;
+      const inStockCount = items.filter(i => i.status === '在库').length;
+      const repairingCount = items.filter(i => i.status === '维修中').length;
+      const totalValue = items.reduce((sum, i) => sum + (i.currentValue || 0), 0);
+      const totalOriginalValue = items.reduce((sum, i) => sum + (i.purchasePrice || 0), 0);
+      const totalDepreciation = totalOriginalValue - totalValue;
+      const monthlyStockIn = data.stockInRecords.filter(r => r.date && r.date.startsWith(thisMonth)).length;
+      const monthlyStockOut = data.stockOutRecords.filter(r => r.date && r.date.startsWith(thisMonth)).length;
+      
+      const byCategory = data.categories.map(cat => {
+        const typeIds = data.equipmentTypes.filter(t => t.categoryId === cat.id).map(t => t.id);
+        const catItems = items.filter(i => typeIds.includes(i.equipmentTypeId));
+        return { name: cat.name, count: catItems.length, value: catItems.reduce((sum, i) => sum + (i.currentValue || 0), 0) };
+      });
+      
+      return { success: true, data: { totalEquipment, inUseCount, inStockCount, repairingCount, totalValue, totalOriginalValue, totalDepreciation, monthlyStockIn, monthlyStockOut, byCategory } };
     },
-    stockIn(params = {}) {
-      return API.get('/report/stock-in', params);
+    async stockIn(params = {}) {
+      await API.delay();
+      const data = DataStore.getData();
+      let records = data.stockInRecords.map(r => {
+        const type = data.equipmentTypes.find(t => t.id === r.equipmentTypeId);
+        const cat = type ? data.categories.find(c => c.id === type.categoryId) : null;
+        return { ...r, equipmentName: type ? type.name : '', categoryName: cat ? cat.name : '', brand: type ? type.brand : '', model: type ? type.model : '' };
+      });
+      if (params.startDate) records = records.filter(r => r.date >= params.startDate);
+      if (params.endDate) records = records.filter(r => r.date <= params.endDate);
+      if (params.categoryId) {
+        const typeIds = data.equipmentTypes.filter(t => t.categoryId === parseInt(params.categoryId)).map(t => t.id);
+        records = records.filter(r => typeIds.includes(r.equipmentTypeId));
+      }
+      const summary = {
+        totalQuantity: records.reduce((sum, r) => sum + (r.quantity || 0), 0),
+        totalAmount: records.reduce((sum, r) => sum + (r.totalPrice || 0), 0)
+      };
+      return { success: true, data: { records, summary } };
     },
-    stockOut(params = {}) {
-      return API.get('/report/stock-out', params);
+    async stockOut(params = {}) {
+      await API.delay();
+      const data = DataStore.getData();
+      let records = data.stockOutRecords.map(r => {
+        const item = data.equipmentItems.find(i => i.id === r.equipmentItemId);
+        const type = item ? data.equipmentTypes.find(t => t.id === item.equipmentTypeId) : null;
+        return { ...r, serialNumber: item ? item.serialNumber : '', equipmentName: type ? type.name : '', brand: type ? type.brand : '', purchasePrice: item ? item.purchasePrice : 0 };
+      });
+      if (params.startDate) records = records.filter(r => r.date >= params.startDate);
+      if (params.endDate) records = records.filter(r => r.date <= params.endDate);
+      if (params.department) records = records.filter(r => r.department && r.department.includes(params.department));
+      const summary = {
+        totalCount: records.length,
+        totalValue: records.reduce((sum, r) => sum + (r.purchasePrice || 0), 0)
+      };
+      return { success: true, data: { records, summary } };
     },
-    inventory(params = {}) {
-      return API.get('/report/inventory', params);
+    async inventory(params = {}) {
+      await API.delay();
+      const data = DataStore.getData();
+      let records = data.equipmentItems.map(item => {
+        const type = data.equipmentTypes.find(t => t.id === item.equipmentTypeId);
+        const cat = type ? data.categories.find(c => c.id === type.categoryId) : null;
+        return { ...item, equipmentName: type ? type.name : '', brand: type ? type.brand : '', model: type ? type.model : '', categoryName: cat ? cat.name : '' };
+      });
+      if (params.status) records = records.filter(i => i.status === params.status);
+      if (params.location) records = records.filter(i => i.location && i.location.includes(params.location));
+      if (params.categoryId) {
+        const typeIds = data.equipmentTypes.filter(t => t.categoryId === parseInt(params.categoryId)).map(t => t.id);
+        records = records.filter(i => typeIds.includes(i.equipmentTypeId));
+      }
+      const summary = {
+        totalCount: records.length,
+        totalOriginalValue: records.reduce((sum, i) => sum + (i.purchasePrice || 0), 0),
+        totalValue: records.reduce((sum, i) => sum + (i.currentValue || 0), 0)
+      };
+      return { success: true, data: { records, summary } };
     },
-    depreciation(params = {}) {
-      return API.get('/report/depreciation', params);
+    async depreciation(params = {}) {
+      await API.delay();
+      const data = DataStore.getData();
+      let records = data.depreciationRecords.map(r => {
+        const item = data.equipmentItems.find(i => i.id === r.equipmentItemId);
+        const type = item ? data.equipmentTypes.find(t => t.id === item.equipmentTypeId) : null;
+        return { ...r, serialNumber: item ? item.serialNumber : '', equipmentName: type ? type.name : '', brand: type ? type.brand : '', purchasePrice: item ? item.purchasePrice : 0 };
+      });
+      if (params.year) records = records.filter(r => r.year === parseInt(params.year));
+      if (params.startDate) records = records.filter(r => r.date >= params.startDate);
+      if (params.endDate) records = records.filter(r => r.date <= params.endDate);
+      const summary = {
+        totalDepreciation: records.reduce((sum, r) => sum + (r.depreciationAmount || 0), 0)
+      };
+      return { success: true, data: { records, summary } };
     }
   }
 };

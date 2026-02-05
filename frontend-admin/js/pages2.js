@@ -31,7 +31,6 @@ Pages.stockIn = async function() {
             <label>日期范围</label>
             <div id="stockInDateRange"></div>
           </div>
-          <button class="btn btn-outline" onclick="Pages.filterStockIn()">查询</button>
         </div>
         <div id="stockInTable">
           ${this.renderStockInTable(res.data)}
@@ -40,8 +39,10 @@ Pages.stockIn = async function() {
     </div>
   `;
   
-  // 初始化日期范围选择器
-  this.stockInDatePicker = Components.createDateRangePicker('stockInDateRange');
+  // 初始化日期范围选择器，选择后自动搜索
+  this.stockInDatePicker = Components.createDateRangePicker('stockInDateRange', {
+    onChange: () => Pages.filterStockIn()
+  });
 };
 
 Pages.renderStockInTable = function(data) {
@@ -167,9 +168,8 @@ Pages.stockOut = async function() {
           </div>
           <div class="form-group">
             <label>科室</label>
-            <input type="text" class="form-control" id="stockOutDept" placeholder="科室名称">
+            <input type="text" class="form-control" id="stockOutDept" placeholder="科室名称" onkeyup="Pages.filterStockOut()">
           </div>
-          <button class="btn btn-outline" onclick="Pages.filterStockOut()">查询</button>
         </div>
         <div id="stockOutTable">
           ${this.renderStockOutTable(res.data)}
@@ -178,8 +178,10 @@ Pages.stockOut = async function() {
     </div>
   `;
   
-  // 初始化日期范围选择器
-  this.stockOutDatePicker = Components.createDateRangePicker('stockOutDateRange');
+  // 初始化日期范围选择器，选择后自动搜索
+  this.stockOutDatePicker = Components.createDateRangePicker('stockOutDateRange', {
+    onChange: () => Pages.filterStockOut()
+  });
 };
 
 Pages.renderStockOutTable = function(data) {
