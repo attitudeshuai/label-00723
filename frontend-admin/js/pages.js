@@ -83,6 +83,25 @@ const Pages = {
         </div>
       </div>
       
+      <div class="chart-row">
+        <div class="card chart-card">
+          <div class="card-header">
+            <span class="card-title">设备状态分布</span>
+          </div>
+          <div class="card-body chart-container">
+            <canvas id="statusPieChart" width="300" height="300"></canvas>
+          </div>
+        </div>
+        <div class="card chart-card">
+          <div class="card-header">
+            <span class="card-title">分类设备数量</span>
+          </div>
+          <div class="card-body chart-container">
+            <canvas id="categoryBarChart" width="400" height="300"></canvas>
+          </div>
+        </div>
+      </div>
+      
       <div class="card">
         <div class="card-header">
           <span class="card-title">设备分类统计</span>
@@ -96,6 +115,189 @@ const Pages = {
         </div>
       </div>
     `;
+    
+    // 绘制Canvas图表
+    this.drawStatusPieChart(data);
+    this.drawCategoryBarChart(data.byCategory);
+  },
+  
+  // 绘制设备状态饼图
+  drawStatusPieChart(data) {
+    const canvas = document.getElementById('statusPieChart');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = Math.min(centerX, centerY) - 40;
+    
+    const statusData = [
+      { label: '在用', value: data.inUseCount, color: '#52c41a' },
+      { label: '在库', value: data.inStockCount, color: '#1890ff' },
+      { label: '维修中', value: data.repairingCount, color: '#faad14' },
+      { label: '已报废', value: data.scrapCount || 0, color: '#ff4d4f' }
+    ].filter(item => item.value > 0);
+    
+    const total = statusData.reduce((sum, item) => sum + item.value, 0);
+    
+    if (total === 0) {
+      ctx.fillStyle = '#999';
+      ctx.font = '14px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('暂无数据', centerX, centerY);
+      return;
+    }
+    
+    let startAngle = -Math.PI / 2;
+    
+    // 绘制饼图扇形
+    statusData.forEach((item, index) => {
+      const sliceAngle = (item.value / total) * 2 * Math.PI;
+      
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.arc(centerX, centerY, radius, startAngle, startAngle + sliceAngle);
+      ctx.closePath();
+      ctx.fillStyle = item.color;
+      ctx.fill();
+      
+      // 绘制白色边框
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // 计算标签位置
+      const midAngle = startAngle + sliceAngle / 2;
+      const labelRadius = radius * 0.7;
+      const labelX = centerX + Math.cos(midAngle) * labelRadius;
+      const labelY = centerY + Math.sin(midAngle) * labelRadius;
+      
+      // 绘制百分比标签
+      const percent = ((item.value / total) * 100).toFixed(1);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 12px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`${percent}%`, labelX, labelY);
+      
+      startAngle += sliceAngle;
+    });
+    
+    // 绘制图例（居中显示）
+    const legendY = canvas.height - 25;
+    const legendItemWidth = 80; // 每个图例项的宽度
+    const totalLegendWidth = statusData.length * legendItemWidth;
+    let legendX = (canvas.width - totalLegendWidth) / 2; // 计算起始位置使图例居中
+    
+    statusData.forEach((item, index) => {
+      ctx.fillStyle = item.color;
+      ctx.fillRect(legendX, legendY, 12, 12);
+      ctx.fillStyle = '#333';
+      ctx.font = '12px Arial';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(`${item.label}(${item.value})`, legendX + 16, legendY + 6);
+      legendX += legendItemWidth;
+    });
+  },
+  
+  // 绘制分类柱状图
+  drawCategoryBarChart(categoryData) {
+    const canvas = document.getElementById('categoryBarChart');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const padding = { top: 30, right: 20, bottom: 60, left: 50 };
+    const chartWidth = canvas.width - padding.left - padding.right;
+    const chartHeight = canvas.height - padding.top - padding.bottom;
+    
+    if (!categoryData || categoryData.length === 0) {
+      ctx.fillStyle = '#999';
+      ctx.font = '14px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('暂无数据', canvas.width / 2, canvas.height / 2);
+      return;
+    }
+    
+    const maxValue = Math.max(...categoryData.map(d => d.count), 1);
+    const barWidth = Math.min(50, (chartWidth / categoryData.length) * 0.6);
+    const barGap = (chartWidth - barWidth * categoryData.length) / (categoryData.length + 1);
+    
+    // 绘制Y轴
+    ctx.beginPath();
+    ctx.moveTo(padding.left, padding.top);
+    ctx.lineTo(padding.left, canvas.height - padding.bottom);
+    ctx.strokeStyle = '#ddd';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    
+    // 绘制X轴
+    ctx.beginPath();
+    ctx.moveTo(padding.left, canvas.height - padding.bottom);
+    ctx.lineTo(canvas.width - padding.right, canvas.height - padding.bottom);
+    ctx.stroke();
+    
+    // 绘制Y轴刻度
+    const yTicks = 5;
+    for (let i = 0; i <= yTicks; i++) {
+      const y = padding.top + (chartHeight / yTicks) * i;
+      const value = Math.round(maxValue * (1 - i / yTicks));
+      
+      ctx.beginPath();
+      ctx.moveTo(padding.left - 5, y);
+      ctx.lineTo(padding.left, y);
+      ctx.stroke();
+      
+      ctx.fillStyle = '#666';
+      ctx.font = '11px Arial';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(value.toString(), padding.left - 8, y);
+      
+      // 绘制网格线
+      ctx.beginPath();
+      ctx.moveTo(padding.left, y);
+      ctx.lineTo(canvas.width - padding.right, y);
+      ctx.strokeStyle = '#eee';
+      ctx.stroke();
+      ctx.strokeStyle = '#ddd';
+    }
+    
+    // 绘制柱状图
+    const colors = ['#1890ff', '#52c41a', '#faad14', '#f5222d', '#722ed1', '#13c2c2'];
+    categoryData.forEach((item, index) => {
+      const barHeight = (item.count / maxValue) * chartHeight;
+      const x = padding.left + barGap + (barWidth + barGap) * index;
+      const y = canvas.height - padding.bottom - barHeight;
+      
+      // 绘制柱子（带渐变）
+      const gradient = ctx.createLinearGradient(x, y, x, canvas.height - padding.bottom);
+      const color = colors[index % colors.length];
+      gradient.addColorStop(0, color);
+      gradient.addColorStop(1, Utils.adjustColor(color, 0.7));
+      
+      ctx.fillStyle = gradient;
+      ctx.fillRect(x, y, barWidth, barHeight);
+      
+      // 绘制柱子顶部数值
+      ctx.fillStyle = '#333';
+      ctx.font = 'bold 11px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(item.count.toString(), x + barWidth / 2, y - 3);
+      
+      // 绘制X轴标签
+      ctx.fillStyle = '#666';
+      ctx.font = '11px Arial';
+      ctx.textBaseline = 'top';
+      
+      // 处理长标签，截断显示
+      let label = item.name;
+      if (label.length > 4) {
+        label = label.substring(0, 4) + '..';
+      }
+      ctx.fillText(label, x + barWidth / 2, canvas.height - padding.bottom + 8);
+    });
   },
   
   // 设备分类页面

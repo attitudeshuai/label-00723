@@ -508,26 +508,29 @@ const API = {
       await API.delay();
       const data = DataStore.getData();
       const items = data.equipmentItems;
+      const activeItems = items.filter(i => i.status !== '已报废'); // 排除已报废设备
       const now = new Date();
       const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
       
-      const totalEquipment = items.length;
+      const totalEquipment = activeItems.length; // 只统计未报废设备
       const inUseCount = items.filter(i => i.status === '在用').length;
       const inStockCount = items.filter(i => i.status === '在库').length;
       const repairingCount = items.filter(i => i.status === '维修中').length;
-      const totalValue = items.reduce((sum, i) => sum + (i.currentValue || 0), 0);
-      const totalOriginalValue = items.reduce((sum, i) => sum + (i.purchasePrice || 0), 0);
+      const scrapCount = items.filter(i => i.status === '已报废').length; // 报废数量单独统计
+      const totalValue = activeItems.reduce((sum, i) => sum + (i.currentValue || 0), 0);
+      const totalOriginalValue = activeItems.reduce((sum, i) => sum + (i.purchasePrice || 0), 0);
       const totalDepreciation = totalOriginalValue - totalValue;
       const monthlyStockIn = data.stockInRecords.filter(r => r.date && r.date.startsWith(thisMonth)).length;
       const monthlyStockOut = data.stockOutRecords.filter(r => r.date && r.date.startsWith(thisMonth)).length;
       
+      // 分类统计时排除已报废设备
       const byCategory = data.categories.map(cat => {
         const typeIds = data.equipmentTypes.filter(t => t.categoryId === cat.id).map(t => t.id);
-        const catItems = items.filter(i => typeIds.includes(i.equipmentTypeId));
+        const catItems = activeItems.filter(i => typeIds.includes(i.equipmentTypeId));
         return { name: cat.name, count: catItems.length, value: catItems.reduce((sum, i) => sum + (i.currentValue || 0), 0) };
       });
       
-      return { success: true, data: { totalEquipment, inUseCount, inStockCount, repairingCount, totalValue, totalOriginalValue, totalDepreciation, monthlyStockIn, monthlyStockOut, byCategory } };
+      return { success: true, data: { totalEquipment, inUseCount, inStockCount, repairingCount, scrapCount, totalValue, totalOriginalValue, totalDepreciation, monthlyStockIn, monthlyStockOut, byCategory } };
     },
     async stockIn(params = {}) {
       await API.delay();

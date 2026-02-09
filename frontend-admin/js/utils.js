@@ -126,5 +126,16 @@ const Utils = {
       }
     }
     return errors;
+  },
+  
+  // 调整颜色亮度（用于Canvas渐变）
+  adjustColor(hex, factor) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    const newR = Math.round(r + (255 - r) * (1 - factor));
+    const newG = Math.round(g + (255 - g) * (1 - factor));
+    const newB = Math.round(b + (255 - b) * (1 - factor));
+    return `rgb(${newR}, ${newG}, ${newB})`;
   }
 };

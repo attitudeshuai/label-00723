@@ -38,7 +38,7 @@ const DataStore = {
         { id: 2, equipmentTypeId: 1, serialNumber: 'CT-2023-002', purchaseDate: '2023-03-20', purchasePrice: 5200000, currentValue: 4680000, location: '影像中心2号机房', status: '在用', department: '影像科' },
         { id: 3, equipmentTypeId: 2, serialNumber: 'MRI-2022-001', purchaseDate: '2022-06-10', purchasePrice: 12000000, currentValue: 10200000, location: '影像中心MRI室', status: '在用', department: '影像科' },
         { id: 4, equipmentTypeId: 3, serialNumber: 'BIO-2023-001', purchaseDate: '2023-02-28', purchasePrice: 800000, currentValue: 700000, location: '检验科生化室', status: '在用', department: '检验科' },
-        { id: 5, equipmentTypeId: 4, serialNumber: 'BED-2023-001', purchaseDate: '2023-03-01', purchasePrice: 150000, currentValue: 135000, location: '手术室1号', status: '在用', department: '手术室' },
+        { id: 5, equipmentTypeId: 4, serialNumber: 'BED-2023-001', purchaseDate: '2023-03-01', purchasePrice: 150000, currentValue: 135000, location: '手术室1号', status: '维修中', department: '手术室' },
         { id: 6, equipmentTypeId: 5, serialNumber: 'MON-2023-001', purchaseDate: '2023-04-15', purchasePrice: 50000, currentValue: 43750, location: 'ICU-01床', status: '在用', department: 'ICU' }
       ],
       stockInRecords: [
@@ -62,7 +62,7 @@ const DataStore = {
       ],
       scrapRecords: [],
       repairRecords: [
-        { id: 1, orderNo: 'WX-2023-0001', equipmentItemId: 5, faultDesc: '显示屏故障', repairContent: '更换显示屏', cost: 5000, startDate: '2023-11-01', endDate: '2023-11-03', status: '已完成', operator: 'admin' }
+        { id: 1, orderNo: 'WX-2023-0001', equipmentItemId: 5, faultDesc: '显示屏故障', repairContent: '', cost: 5000, startDate: '2023-11-01', endDate: null, status: '维修中', operator: 'admin' }
       ],
       idGenerators: { category: 6, equipmentType: 6, equipmentItem: 7, stockIn: 6, stockOut: 7, depreciation: 3, scrap: 1, repair: 2 }
     };
