@@ -633,7 +633,10 @@ const Pages = {
       { key: 'purchaseDate', label: '购入日期', type: 'date' },
       { key: 'purchasePrice', label: '购入价格', type: 'money' },
       { key: 'currentValue', label: '当前价值', type: 'money' },
-      { key: 'status', label: '状态', type: 'status' }
+      { key: 'status', label: '状态', type: 'status' },
+      { key: 'actions', label: '操作', width: '120px', render: (_, row) => `
+        <button class="btn btn-sm btn-primary" onclick="Pages.viewEquipmentDetail(${row.id})">查看详情</button>
+      `}
     ]);
   },
   
@@ -646,5 +649,128 @@ const Pages = {
     if (res.success) {
       document.getElementById('inventoryTable').innerHTML = this.renderInventoryTable(res.data);
     }
+  },
+
+  // 查看设备详情
+  viewEquipmentDetail(equipmentId) {
+    App.navigateTo('equipmentDetail', { id: equipmentId });
+  },
+
+  // 设备详情页面
+  async equipmentDetail(params) {
+    const content = document.getElementById('pageContent');
+    content.innerHTML = Components.loading();
+    
+    const res = await API.equipment.getItem(params.id);
+    if (!res.success) {
+      content.innerHTML = '<div class="empty-state"><p>加载失败</p></div>';
+      return;
+    }
+    
+    const equipment = res.data;
+    
+    content.innerHTML = `
+      <div class="mb-4">
+        <button class="btn btn-outline" onclick="App.navigateTo('inventory')">
+          ← 返回列表
+        </button>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">基本信息</span>
+        </div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>设备序列号</label>
+              <div class="detail-value">${equipment.serialNumber}</div>
+            </div>
+            <div class="form-group">
+              <label>设备名称</label>
+              <div class="detail-value">${equipment.equipmentName}</div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>品牌</label>
+              <div class="detail-value">${equipment.brand}</div>
+            </div>
+            <div class="form-group">
+              <label>型号</label>
+              <div class="detail-value">${equipment.model}</div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>规格</label>
+              <div class="detail-value">${equipment.spec || '-'}</div>
+            </div>
+            <div class="form-group">
+              <label>单位</label>
+              <div class="detail-value">${equipment.unit || '-'}</div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>使用科室</label>
+              <div class="detail-value">${equipment.department || '-'}</div>
+            </div>
+            <div class="form-group">
+              <label>存放位置</label>
+              <div class="detail-value">${equipment.location || '-'}</div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>设备状态</label>
+              <div class="detail-value">
+                <span class="status-badge status-${equipment.status === '在用' ? 'normal' : equipment.status === '维修中' ? 'warning' : equipment.status === '已报废' ? 'danger' : 'info'}">
+                  ${equipment.status}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">价值信息</span>
+        </div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>购入日期</label>
+              <div class="detail-value">${equipment.purchaseDate}</div>
+            </div>
+            <div class="form-group">
+              <label>购入价格</label>
+              <div class="detail-value">${Utils.formatMoney(equipment.purchasePrice)}</div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>当前价值</label>
+              <div class="detail-value text-primary font-bold">${Utils.formatMoney(equipment.currentValue)}</div>
+            </div>
+            <div class="form-group">
+              <label>累计折旧</label>
+              <div class="detail-value">${Utils.formatMoney(equipment.purchasePrice - equipment.currentValue)}</div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>年折旧率</label>
+              <div class="detail-value">${equipment.depreciationRate || 10}%</div>
+            </div>
+            <div class="form-group">
+              <label>预计使用年限</label>
+              <div class="detail-value">${equipment.lifeYears || 10}年</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
   }
 };
