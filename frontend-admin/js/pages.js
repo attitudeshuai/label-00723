@@ -633,7 +633,10 @@ const Pages = {
       { key: 'purchaseDate', label: '购入日期', type: 'date' },
       { key: 'purchasePrice', label: '购入价格', type: 'money' },
       { key: 'currentValue', label: '当前价值', type: 'money' },
-      { key: 'status', label: '状态', type: 'status' }
+      { key: 'status', label: '状态', type: 'status' },
+      { key: 'actions', label: '操作', width: '120px', render: (_, row) => `
+        <button class="btn btn-sm btn-primary" onclick="Pages.equipmentDetail(${row.id})">查看详情</button>
+      `}
     ]);
   },
   
@@ -646,5 +649,116 @@ const Pages = {
     if (res.success) {
       document.getElementById('inventoryTable').innerHTML = this.renderInventoryTable(res.data);
     }
+  },
+  
+  async equipmentDetail(id) {
+    const content = document.getElementById('pageContent');
+    content.innerHTML = Components.loading();
+    
+    const res = await API.equipment.getItem(id);
+    if (!res.success) {
+      content.innerHTML = '<div class="empty-state"><p>加载失败</p></div>';
+      return;
+    }
+    
+    const item = res.data;
+    
+    const typeRes = await API.equipment.getType(item.equipmentTypeId);
+    let type = {};
+    if (typeRes.success) {
+      type = typeRes.data;
+    }
+    
+    let categoryName = '';
+    if (type.categoryId) {
+      const catRes = await API.category.get(type.categoryId);
+      if (catRes.success) {
+        categoryName = catRes.data.name;
+      }
+    }
+    
+    document.getElementById('pageTitle').textContent = '设备详情';
+    
+    content.innerHTML = `
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">设备详情</span>
+          <button class="btn btn-outline" onclick="Pages.inventory()">← 返回列表</button>
+        </div>
+        <div class="card-body">
+          <div class="detail-section">
+            <h4 class="detail-title">基本信息</h4>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">序列号</span>
+                <span class="detail-value">${item.serialNumber}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">设备名称</span>
+                <span class="detail-value">${type.name || '-'}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">设备分类</span>
+                <span class="detail-value">${categoryName || '-'}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">品牌</span>
+                <span class="detail-value">${type.brand || '-'}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">型号</span>
+                <span class="detail-value">${type.model || '-'}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">规格</span>
+                <span class="detail-value">${type.spec || '-'}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">单位</span>
+                <span class="detail-value">${type.unit || '-'}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">使用年限</span>
+                <span class="detail-value">${type.lifeYears || '-'} 年</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">年折旧率</span>
+                <span class="detail-value">${type.depreciationRate || '-'}%</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="detail-section">
+            <h4 class="detail-title">库存信息</h4>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">购入日期</span>
+                <span class="detail-value">${Utils.formatDate(item.purchaseDate)}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">购入价格</span>
+                <span class="detail-value">${Utils.formatMoney(item.purchasePrice)}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">当前价值</span>
+                <span class="detail-value">${Utils.formatMoney(item.currentValue)}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">使用科室</span>
+                <span class="detail-value">${item.department || '-'}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">存放位置</span>
+                <span class="detail-value">${item.location || '-'}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">状态</span>
+                <span class="detail-value"><span class="status-tag ${Utils.getStatusClass(item.status)}">${item.status}</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
   }
 };
