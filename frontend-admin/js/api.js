@@ -151,7 +151,23 @@ const API = {
       await API.delay();
       const data = DataStore.getData();
       const item = data.equipmentItems.find(i => i.id === parseInt(id));
-      return item ? { success: true, data: item } : { success: false, message: '设备不存在' };
+      if (!item) {
+        return { success: false, message: '设备不存在' };
+      }
+      const type = data.equipmentTypes.find(t => t.id === item.equipmentTypeId);
+      return {
+        success: true,
+        data: {
+          ...item,
+          equipmentName: type ? type.name : '',
+          brand: type ? type.brand : '',
+          model: type ? type.model : '',
+          spec: type ? type.spec : '',
+          unit: type ? type.unit : '',
+          lifeYears: type ? type.lifeYears : 10,
+          depreciationRate: type ? type.depreciationRate : 10
+        }
+      };
     }
   },
 
