@@ -633,7 +633,8 @@ const Pages = {
       { key: 'purchaseDate', label: '购入日期', type: 'date' },
       { key: 'purchasePrice', label: '购入价格', type: 'money' },
       { key: 'currentValue', label: '当前价值', type: 'money' },
-      { key: 'status', label: '状态', type: 'status' }
+      { key: 'status', label: '状态', type: 'status' },
+      { key: 'actions', label: '操作', width: '100px', render: (_, row) => '<button class=\"btn btn-link btn-sm\" onclick=\"navigateToPage(\'equipmentDetail\', { id: ' + row.id + ' })\">查看详情</button>' }
     ]);
   },
   
@@ -645,6 +646,160 @@ const Pages = {
     const res = await API.equipment.listItems({ status, department, keyword });
     if (res.success) {
       document.getElementById('inventoryTable').innerHTML = this.renderInventoryTable(res.data);
+    }
+  },
+
+  async equipmentDetail(params) {
+    const content = document.getElementById('pageContent');
+    content.innerHTML = Components.loading();
+    
+    try {
+      const res = await API.equipment.getItem(params.id);
+      if (!res.success) {
+        content.innerHTML = '<div class="empty-state"><p>加载失败</p></div>';
+        return;
+      }
+      
+      const item = res.data;
+      
+      const typeRes = await API.equipment.getType(item.equipmentTypeId);
+      const type = typeRes.success && typeRes.data ? typeRes.data : {};
+      
+      const depreciationRes = await API.depreciation.list();
+      const depreciationRecords = (depreciationRes.success && depreciationRes.data && Array.isArray(depreciationRes.data)) 
+        ? depreciationRes.data.filter(r => r && r.equipmentItemId === item.id) 
+        : [];
+      
+      const repairRes = await API.repair.list();
+      const repairRecords = (repairRes.success && repairRes.data && Array.isArray(repairRes.data)) 
+        ? repairRes.data.filter(r => r && r.equipmentItemId === item.id) 
+        : [];
+      
+      const depreciationTable = depreciationRecords.length > 0 ? Components.renderTable(depreciationRecords, [
+        { key: 'year', label: '年份' },
+        { key: 'month', label: '月份' },
+        { key: 'beforeValue', label: '折旧前价值', type: 'money' },
+        { key: 'depreciationAmount', label: '折旧金额', type: 'money' },
+        { key: 'afterValue', label: '折旧后价值', type: 'money' },
+        { key: 'type', label: '类型' },
+        { key: 'date', label: '折旧日期', type: 'date' }
+      ]) : '<div class="empty-state"><p>暂无折旧记录</p></div>';
+      
+      const repairTable = repairRecords.length > 0 ? Components.renderTable(repairRecords, [
+        { key: 'orderNo', label: '维修单号' },
+        { key: 'faultDesc', label: '故障描述' },
+        { key: 'repairContent', label: '维修内容' },
+        { key: 'cost', label: '维修费用', type: 'money' },
+        { key: 'startDate', label: '开始日期', type: 'date' },
+        { key: 'endDate', label: '完成日期', type: 'date' },
+        { key: 'status', label: '状态', type: 'status' }
+      ]) : '<div class="empty-state"><p>暂无维修记录</p></div>';
+      
+      const totalDepreciation = (item.purchasePrice || 0) - (item.currentValue || 0);
+      
+      const html = `
+        <div style="margin-bottom: 16px;">
+          <button class="btn btn-primary" onclick="navigateToPage('inventory')">
+            ← 返回列表
+          </button>
+        </div>
+        
+        <div class="card" style="margin-bottom: 24px;">
+          <div class="card-header">
+            <span class="card-title">基本信息</span>
+          </div>
+          <div class="card-body">
+            <div class="detail-grid">
+              <div class="detail-item">
+                <label>序列号</label>
+                <span>${item.serialNumber}</span>
+              </div>
+              <div class="detail-item">
+                <label>设备名称</label>
+                <span>${type.name || '-'}</span>
+              </div>
+              <div class="detail-item">
+                <label>品牌</label>
+                <span>${type.brand || '-'}</span>
+              </div>
+              <div class="detail-item">
+                <label>型号</label>
+                <span>${type.model || '-'}</span>
+              </div>
+              <div class="detail-item">
+                <label>规格</label>
+                <span>${type.specification || '-'}</span>
+              </div>
+              <div class="detail-item">
+                <label>使用科室</label>
+                <span>${item.department || '-'}</span>
+              </div>
+              <div class="detail-item">
+                <label>存放位置</label>
+                <span>${item.location || '-'}</span>
+              </div>
+              <div class="detail-item">
+                <label>状态</label>
+                <span><span class="status-tag ${Utils.getStatusClass(item.status)}">${item.status}</span></span>
+              </div>
+              <div class="detail-item">
+                <label>购入日期</label>
+                <span>${Utils.formatDate(item.purchaseDate)}</span>
+              </div>
+              <div class="detail-item">
+                <label>购入价格</label>
+                <span>${Utils.formatMoney(item.purchasePrice)}</span>
+              </div>
+              <div class="detail-item">
+                <label>当前价值</label>
+                <span>${Utils.formatMoney(item.currentValue)}</span>
+              </div>
+              <div class="detail-item">
+                <label>累计折旧</label>
+                <span>${Utils.formatMoney(totalDepreciation)}</span>
+              </div>
+              <div class="detail-item">
+                <label>使用年限</label>
+                <span>${type.lifeYears ? type.lifeYears + '年' : '-'}</span>
+              </div>
+              <div class="detail-item">
+                <label>年折旧率</label>
+                <span>${type.depreciationRate ? type.depreciationRate + '%' : '-'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card" style="margin-bottom: 24px;">
+          <div class="card-header">
+            <span class="card-title">折旧记录</span>
+          </div>
+          <div class="card-body">
+            ${depreciationTable}
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">维修记录</span>
+          </div>
+          <div class="card-body">
+            ${repairTable}
+          </div>
+        </div>
+      `;
+      
+      content.innerHTML = html;
+    } catch (error) {
+      console.error('加载详情页失败:', error);
+      const errorMsg = error.message || '未知错误';
+      content.innerHTML = `
+        <div class="empty-state">
+          <p>加载失败: ${errorMsg}</p>
+          <br>
+          <button class="btn btn-primary" onclick="navigateToPage('inventory')">返回列表</button>
+        </div>
+      `;
     }
   }
 };

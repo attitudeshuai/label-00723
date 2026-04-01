@@ -625,11 +625,21 @@ const Components = {
   
   // 渲染表格
   renderTable(data, columns, options = {}) {
-    if (!data || data.length === 0) {
+    if (!data || !Array.isArray(data) || data.length === 0) {
       return `
         <div class="empty-state">
           <div class="icon">📭</div>
           <p>暂无数据</p>
+        </div>
+      `;
+    }
+    
+    if (!columns || !Array.isArray(columns)) {
+      console.error('renderTable: columns参数无效', columns);
+      return `
+        <div class="empty-state">
+          <div class="icon">⚠️</div>
+          <p>列配置错误</p>
         </div>
       `;
     }
@@ -639,20 +649,26 @@ const Components = {
     ).join('');
     
     const bodyHtml = data.map((row, index) => {
+      if (!row) return '';
       const cells = columns.map(col => {
-        let value = row[col.key];
-        if (col.render) {
-          value = col.render(value, row, index);
+        let value = col.key ? row[col.key] : null;
+        if (col.render && typeof col.render === 'function') {
+          try {
+            value = col.render(value, row, index);
+          } catch (e) {
+            console.error('渲染列失败:', col.key, e);
+            value = '-';
+          }
         } else if (col.type === 'money') {
           value = Utils.formatMoney(value);
         } else if (col.type === 'date') {
           value = Utils.formatDate(value);
         } else if (col.type === 'status') {
-          value = `<span class="status-tag ${Utils.getStatusClass(value)}">${value}</span>`;
+          value = `<span class="status-tag ${Utils.getStatusClass(value)}">${value || '-'}</span>`;
         }
         return `<td>${value ?? '-'}</td>`;
       }).join('');
-      return `<tr data-id="${row.id}">${cells}</tr>`;
+      return `<tr data-id="${row.id || ''}">${cells}</tr>`;
     }).join('');
     
     return `

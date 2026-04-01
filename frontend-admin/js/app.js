@@ -107,8 +107,9 @@ const App = {
   },
   
   // 页面导航
-  navigateTo(page) {
+  navigateTo(page, params = {}) {
     this.currentPage = page;
+    this.currentParams = params;
     
     // 更新导航高亮
     document.querySelectorAll('.nav-item').forEach(item => {
@@ -121,6 +122,7 @@ const App = {
       category: '设备分类',
       equipment: '设备字典',
       inventory: '设备明细',
+      equipmentDetail: '设备详情',
       stockIn: '设备入库',
       stockOut: '设备出库',
       depreciation: '设备折旧',
@@ -135,7 +137,7 @@ const App = {
     
     // 加载页面内容
     if (Pages[page]) {
-      Pages[page]();
+      Pages[page](params);
     } else {
       document.getElementById('pageContent').innerHTML = `
         <div class="empty-state">
@@ -146,6 +148,11 @@ const App = {
     }
   }
 };
+
+// 全局跳转函数，确保onclick可以调用
+function navigateToPage(page, params) {
+  App.navigateTo(page, params || {});
+}
 
 // 启动应用
 document.addEventListener('DOMContentLoaded', () => {
